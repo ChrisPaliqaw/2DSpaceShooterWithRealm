@@ -6,6 +6,7 @@ using Unity.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
+using Realms;
 
 /// <summary>
 /// Class which manages the game
@@ -14,6 +15,10 @@ public class GameManager : MonoBehaviour
 {
     // The script that manages all others
     public static GameManager instance = null;
+
+    private Realm realm;
+    private HighScore highScore;
+    private const string GlobalHighScoreKey = "global";
 
     [Tooltip("The UIManager component which manages the current scene's UI")]
     public UIManager uiManager = null;
@@ -39,9 +44,27 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // The highest score obtained by this player
-    [Tooltip("The highest score acheived on this device")]
-    public int highScore = 0;
+    /* Wrap the Realm highScore object so we
+     * don't have to worry about transactions when updating.
+     */
+    public static int HighScore
+    {
+        get
+        {
+            if (instance.highScore == null) {
+                instance.InstantiateHighScore();
+            }
+            return instance.highScore.Score;
+        }
+        set
+        {
+            if (instance.highScore == null)
+            {
+                instance.InstantiateHighScore();
+            }
+            instance.UpdateHighScore(value);
+        }
+    }
 
     [Header("Game Progress / Victory Settings")]
     [Tooltip("Whether the game is winnable or not \nDefault: true")]
@@ -100,6 +123,28 @@ public class GameManager : MonoBehaviour
 
     /// <summary>
     /// Description:
+    /// Load high score from Realm, or create it if it doesn't exist
+    /// Inputs: 
+    /// none
+    /// Returns: 
+    /// void (no return)
+    /// </summary>
+    private void InstantiateHighScore()
+    {
+        realm = Realm.GetInstance();
+        highScore = realm.Find<HighScore>(GlobalHighScoreKey);
+        if (highScore == null)
+        {
+            highScore = new HighScore(GameManager.GlobalHighScoreKey);
+            realm.Write(() =>
+            {
+                realm.Add(highScore);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Description:
     /// Handles necessary activities on start up such as getting the highscore and score, updating UI elements, 
     /// and checking the number of enemies
     /// Inputs:
@@ -109,10 +154,8 @@ public class GameManager : MonoBehaviour
     /// </summary>
     void HandleStartUp()
     {
-        if (PlayerPrefs.HasKey("highscore"))
-        {
-            highScore = PlayerPrefs.GetInt("highscore");
-        }
+        InstantiateHighScore();
+
         if (PlayerPrefs.HasKey("score"))
         {
             score = PlayerPrefs.GetInt("score");
@@ -122,6 +165,13 @@ public class GameManager : MonoBehaviour
         {
             FigureOutHowManyEnemiesExist();
         }
+    }
+
+    void UpdateHighScore(int newScore)
+    {
+        realm.Write(() => {
+            highScore.Score = newScore;
+        });
     }
 
     /// <summary>
@@ -221,7 +271,7 @@ public class GameManager : MonoBehaviour
     public static void AddScore(int scoreAmount)
     {
         score += scoreAmount;
-        if (score > instance.highScore)
+        if (score > instance.highScore.Score)
         {
             SaveHighScore();
         }
@@ -252,10 +302,10 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public static void SaveHighScore()
     {
-        if (score > instance.highScore)
+        if (score > instance.highScore.Score)
         {
-            PlayerPrefs.SetInt("highscore", score);
-            instance.highScore = score;
+            // PlayerPrefs.SetInt("highscore", score);
+            instance.UpdateHighScore(score);
         }
         UpdateUIElements();
     }
@@ -270,10 +320,10 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public static void ResetHighScore()
     {
-        PlayerPrefs.SetInt("highscore", 0);
+        
         if (instance != null)
         {
-            instance.highScore = 0;
+            instance.UpdateHighScore(0);
         }
         UpdateUIElements();
     }

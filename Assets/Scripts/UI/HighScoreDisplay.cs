@@ -23,7 +23,7 @@ public class HighScoreDisplay : UIelement
     {
         if (displayText != null)
         {
-            displayText.text = "High: " + GameManager.instance.highScore.ToString();
+            displayText.text = $"High: {GameManager.HighScore.ToString()}";
         }
     }
 
