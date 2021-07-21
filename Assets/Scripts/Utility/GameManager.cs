@@ -26,10 +26,9 @@ public class GameManager : MonoBehaviour
     [Tooltip("The player gameobject")]
     public GameObject player = null;
 
-    [Header("Scores")]
+    // TODO: Remove annotations to the prerealm and postrealm tags
     // The current player score in the game
-    [Tooltip("The player's score")]
-    [SerializeField] private int gameManagerScore = 0;
+    private int gameManagerScore = 0;
 
     // Static getter/setter for player score (for convenience)
     public static int score
@@ -131,8 +130,10 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void InstantiateHighScore()
     {
-        realm = Realm.GetInstance();
+        RealmConfiguration configuration = getRealmConfiguration();
+        realm = Realm.GetInstance(configuration);
         highScore = realm.Find<HighScore>(GlobalHighScoreKey);
+
         if (highScore == null)
         {
             highScore = new HighScore(GameManager.GlobalHighScoreKey);
@@ -141,6 +142,29 @@ public class GameManager : MonoBehaviour
                 realm.Add(highScore);
             });
         }
+    }
+
+    private RealmConfiguration getRealmConfiguration()
+    {
+        var config = new RealmConfiguration
+        {
+            SchemaVersion = 2,
+            MigrationCallback = (migration, oldSchemaVersion) =>
+            {
+                Debug.Log("oldSchemaVersion = " + oldSchemaVersion);
+
+                if (oldSchemaVersion == 1)
+                {
+                    realm.Write(() =>
+                    {
+                        var oldHighScores = migration.OldRealm.All<HighScore>();
+                        // Remove the collection from the realm.
+                        realm.RemoveRange(oldHighScores);
+                    });
+                }
+            }
+        };
+        return config;
     }
 
     /// <summary>

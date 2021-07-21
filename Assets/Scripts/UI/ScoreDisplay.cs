@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// This class inherits for the UIelement class and handles updating the score display
+/// Uses some code from Adapted from https://gamedevbeginner.com/how-to-make-countdown-timer-in-unity-minutes-seconds/
 /// </summary>
-public class ScoreDisplay : UIelement
+public class ScoreDisplay : MonoBehaviour
 {
     [Tooltip("The text UI to use for display")]
     public Text displayText = null;
@@ -23,22 +23,25 @@ public class ScoreDisplay : UIelement
     {
         if (displayText != null)
         {
-            displayText.text = "Score: " + GameManager.score.ToString();
+            float timeToDisplay = Time.timeSinceLevelLoad;
+
+            float minutes = Mathf.FloorToInt(timeToDisplay / 60);
+            float seconds = Mathf.FloorToInt(timeToDisplay % 60);
+
+            displayText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
         }
     }
 
     /// <summary>
     /// Description:
-    /// Overides the virtual UpdateUI function and uses the DisplayScore to update the score display
+    /// Overides the virtual Update function and uses the DisplayScore to update the score display
     /// Inputs:
     /// none
     /// Returns:
     /// void (no return)
     /// </summary>
-    public override void UpdateUI()
+    public void Update()
     {
-        // This calls the base update UI function from the UIelement class
-        base.UpdateUI();
 
         // The remaining code is only called for this sub-class of UIelement and not others
         DisplayScore();

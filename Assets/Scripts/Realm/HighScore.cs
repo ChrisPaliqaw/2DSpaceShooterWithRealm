@@ -5,12 +5,14 @@ public class HighScore: RealmObject
     [PrimaryKey]
     public string Name { get; set; }
 
-    public int Score { get; set; } = 0;
+    [Required]
+    public float LowTime { get; set; } = float.MaxValue;
 
     public HighScore() { }
 
-    public HighScore(string name)
+    public HighScore(string name, float lowTime)
     {
         Name = name;
+        LowTime = lowTime;
     }
 }
